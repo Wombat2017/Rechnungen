@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><title>Rechnungstool</title><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Rechnungen">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{--bg:#f5f5f4;--card:#fff;--tx:#161616;--mu:#707070;--bd:#e0e0de;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141414;--card:#1e1e1e;--tx:#ededed;--mu:#9a9a9a;--bd:#333}}
+:root[data-theme=dark]{--bg:#141414;--card:#1e1e1e;--tx:#ededed;--mu:#9a9a9a;--bd:#333}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:15px Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+nav{display:flex;gap:6px;padding:10px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;border-bottom:1px solid var(--bd);overflow-x:auto}nav button{flex:none}
+main{max-width:900px;margin:0 auto;padding:12px}button,select,input,textarea{font:inherit;color:var(--tx)}
+button{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;cursor:pointer}button.p{background:var(--tx);color:var(--bg);border-color:var(--tx)}button.on{border-color:var(--tx);font-weight:600}
+input,select,textarea{width:100%;background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px;min-width:0}
+label{display:block;font-size:12px;color:var(--mu);margin:8px 0 2px}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.row{display:flex;gap:6px;align-items:center;margin-bottom:6px}.row>*{flex:1}.row .s{flex:0 0 56px}.row .m{flex:0 0 110px}.row .x{flex:0 0 36px;padding:8px 0}
+.li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd)}.li small{color:var(--mu);display:block}.b{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--bd)}
+h2{margin:6px 0 10px;font-size:18px}#wrap{overflow-x:auto}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:99px;z-index:9;display:none}
+.sheet{width:794px;min-height:1120px;background:#fff;color:#111;font:12px/1.5 Inter,Calibri,'Segoe UI',system-ui,sans-serif;padding:46px 54px 30px;display:flex;flex-direction:column}
+.sheet .r{text-align:right;white-space:nowrap}.sheet p{margin:0 0 10px}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:34px}.hd .nm{font-size:18px;font-weight:700}.hd .sd{text-align:right;font-size:9.5px;line-height:1.55;color:#555}
+.mid{display:flex;justify-content:space-between;gap:24px;margin-bottom:30px}.sm{font-size:8.5px;color:#777;border-bottom:1px solid #bbb;padding-bottom:3px;margin-bottom:8px}.rc{font-size:12.5px;line-height:1.55}
+.info{min-width:220px;font-size:11px}.info div{display:flex;justify-content:space-between;gap:16px;padding:3px 0;border-bottom:1px solid #e6e6e6}.info span{color:#777}.info b{font-weight:600}
+.sheet h1{font-size:19px;margin:0 0 2px;font-weight:700}.bv{color:#555;margin-bottom:18px}
+.sheet table{width:100%;border-collapse:collapse}.sheet table.it th{font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;color:#666;font-weight:600;text-align:left;padding:6px 6px;border-bottom:1.5px solid #111}
+.sheet table.it th.r{text-align:right}.sheet table.it td{padding:7px 6px;border-bottom:1px solid #e6e6e6;vertical-align:top}
+.sum{width:58%;margin:14px 0 0 auto}.sum td{padding:4px 6px}.sum .mu td{color:#777;font-size:11px;padding:1px 6px}.sum .hl td{font-weight:600;border-top:1px solid #111;padding-top:7px}.sum .tp td{border-top:1px solid #d0d0d0}
+.sum .gr td{border-top:1.5px solid #111;border-bottom:1.5px solid #111;font-weight:700;font-size:14px;padding:8px 6px}
+.sheet .ft{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;border-top:1px solid #ccc;padding-top:10px;font-size:9px;color:#555;margin-top:auto}.sheet .ft b{display:block;color:#111;margin-bottom:2px}
+@media print{nav,.noprint{display:none}body{background:#fff}#wrap{overflow:visible}}
+</style></head><body>
+<nav><button id="n-list" data-a="list">Rechnungen</button><button id="n-cus" data-a="cus">Kunden</button><button id="n-set" data-a="set">Einstellungen</button><button class="p" data-a="new">+ Neu</button></nav>
+<main id="app"></main><div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur=n=>(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const num=v=>parseFloat(String(v).replace(/\./g,'').replace(',','.'))||0;
+const TYPES={AZ:'Abschlagsrechnung',SR:'Schlussrechnung',RE:'Rechnung',AN:'Angebot'};
+const S={set:{prefix:'RE'+new Date().getFullYear()+'-',next:1,vat:19,pay:'Bitte überweisen Sie den Betrag umgehend ohne Abzug unter der Rechnungsnummer auf folgendes Konto:'},cus:[],inv:[],view:'list',cur:null,ce:null,q:''};
+const LS={get:k=>{try{return JSON.parse(localStorage.getItem('rt:'+k))||{}}catch(x){return{}}},put:(k,v)=>localStorage.setItem('rt:'+k,JSON.stringify(v))},subs={};
+function mk(){const snap=c=>({docs:Object.entries(LS.get(c)).map(([id,d])=>({id,exists:true,data:()=>d}))}),note=c=>(subs[c]||[]).forEach(f=>f(snap(c)));
+ return{collection:c=>({onSnapshot:f=>{(subs[c]=subs[c]||[]).push(f);f(snap(c))},doc:id=>({set:async d=>{const o=LS.get(c);o[id]=JSON.parse(JSON.stringify(d));LS.put(c,o);note(c)},delete:async()=>{const o=LS.get(c);delete o[id];LS.put(c,o);note(c)}})}),
+ doc:p=>({onSnapshot:f=>{const[c,id]=p.split('/'),g=()=>{const d=LS.get(c)[id];return{exists:!!d,data:()=>d}};(subs[c]=subs[c]||[]).push(()=>f(g()));f(g())}})}}
+function dl(name,blob){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)}
+let db=null;const today=()=>new Date().toISOString().slice(0,10),dd=s=>s?s.split('-').reverse().join('.'):'',cusOf=id=>S.cus.find(c=>c.id===id)||{},isAZ=i=>i.type==='AZ'||i.type==='SR';
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2500)}
+function calc(i){const prev=(i.prev||[]).map(num),ps=prev.reduce((a,b)=>a+b,0),cur=(i.items||[]).reduce((a,b)=>a+num(b.a),0);
+ const stand=isAZ(i)?((i.stand||'')!==''?num(i.stand):ps+cur):null,net=isAZ(i)?stand-ps:cur,vat=Math.round(net*num(i.vat??S.set.vat))/100;return{prev,ps,cur,stand,net,vat,gross:net+vat}}
+function sheet(i){const s=S.set,c=cusOf(i.cid),t=calc(i),az=isAZ(i),n=t.prev.length,an=i.type==='AN',v=num(i.vat??s.vat);
+ const R=(l,x,k='')=>`<tr class="${k}"><td>${l}</td><td class="r">${x}</td></tr>`;
+ const rows=(i.items||[]).map((x,k)=>`<tr><td>${k+1}</td><td>${e(x.q)}</td><td>${e(x.u)}</td><td>${e(x.t)}</td><td class="r">${eur(num(x.a))}</td></tr>`).join('');
+ const sum=(az?R('Liefer- / Leistungsstand',eur(t.stand),'hl')+t.prev.concat([t.cur]).map((x,k)=>R((k+1)+'. AZ',eur(x),'mu')).join('')+R('Zwischensumme AZ',eur(t.stand),'tp')+(n?R('Abzüglich bereits geleisteter AZ '+(n>1?'1. - '+n:'1')+'.','- '+eur(t.ps)):''):'')
+  +R(az?'Netto-Betrag dieser '+(i.type==='SR'?'Schlussrechnung':'Abschlagsrechnung'):'Nettosumme',eur(t.net),'tp')+R('Zzgl. '+v+' % USt.',eur(t.vat))+R(an?'Angebotssumme':'Rechnungssumme',eur(t.gross),'gr');
+ return `<div><div class="hd"><div>${s.logo?`<img src="${s.logo}" style="max-height:56px;max-width:210px">`:`<div class="nm">${e(s.name)}</div>`}</div><div class="sd">${e(s.name)}<br>${e(s.addr)}<br>${e(s.tel)}<br>${e(s.mail)}</div></div>
+ <div class="mid"><div><div class="sm">${e(s.name)} · ${e(s.addr)}</div><div class="rc"><b>${e(c.name)}</b><br>${e(c.addr).replace(/\n/g,'<br>')}</div></div>
+ <div class="info"><div><span>${an?'Angebots-Nr.':'Rechnungs-Nr.'}</span><b>${e(i.no)}</b></div><div><span>Datum</span><b>${e(s.city||'')}${s.city?', ':''}${dd(i.date)}</b></div>${c.no?`<div><span>Kunden-Nr.</span><b>${e(c.no)}</b></div>`:''}</div></div>
+ <h1>${e(i.title)}</h1><div class="bv">${i.bv?'BV: '+e(i.bv):'&nbsp;'}</div><p>Sehr geehrte Damen und Herren,</p><p style="white-space:pre-line">${e(i.intro)}</p>
+ <table class="it"><tr><th style="width:34px">Pos.</th><th style="width:44px">Me.</th><th style="width:54px">Einh.</th><th>Leistung</th><th class="r">Betrag</th></tr>${rows}</table><table class="sum">${sum}</table>
+ ${an?'':`<p style="margin-top:20px"><b>${e(s.pay)}</b><br>IBAN: ${e(s.iban)} · BIC: ${e(s.bic)}</p>`}<p>${e(i.outro||'Bei Fragen zu Ihrer Rechnung stehe ich Ihnen gern zur Verfügung.')}</p><p>Mit freundlichen Grüßen<br>${e(s.owner)}</p></div>
+ <div class="ft"><div><b>${e(s.name)}</b>${e(s.addr)}</div><div><b>Kontakt</b>${e(s.tel)}<br>${e(s.mail)}<br>${e(s.web)}</div><div><b>Steuer</b>USt-ID: ${e(s.ustid)}<br>Steuernr.: ${e(s.stnr)}<br>Inhaber: ${e(s.owner)}</div><div><b>Bankverbindung</b>${e(s.bank)}<br>IBAN: ${e(s.iban)}<br>BIC: ${e(s.bic)}</div></div>`}
+function fit(){const w=$('wrap'),p=$('sheet');if(w&&p)p.style.zoom=Math.min(1,(w.clientWidth-2)/794)}
+function drawSheet(){const el=$('sheet');if(el){el.innerHTML=sheet(S.cur);fit()}}
+const B=(p,l,v,t='text',x='')=>`<div><label>${l}</label><input type="${t}" ${x} data-b="${p}" value="${e(v)}"></div>`;
+function histPrev(i){return S.inv.filter(x=>x.id!==i.id&&x.cid===i.cid&&x.bv===i.bv&&x.type==='AZ').sort((a,b)=>(a.date+a.no).localeCompare(b.date+b.no)).map(x=>String(x.net||0).replace('.',','))}
+function autoTitle(){const i=S.cur;return i.type==='AZ'?(i.prev.length+1)+'. Abschlagsrechnung':TYPES[i.type]}
+function renderForm(){const i=S.cur,D='inputmode="decimal"';$('form').innerHTML=`<div class="card"><div class="g"><div><label>Art</label><select data-b="type">${Object.entries(TYPES).map(([k,v])=>`<option value="${k}" ${i.type===k?'selected':''}>${v}</option>`).join('')}</select></div>${B('no','Nummer',i.no)}${B('date','Datum',i.date,'date')}
+ <div><label>Kunde</label><select data-b="cid"><option value="">– wählen –</option>${S.cus.map(c=>`<option value="${c.id}" ${i.cid===c.id?'selected':''}>${e(c.name)}</option>`).join('')}<option value="+">+ Neuer Kunde…</option></select></div></div>
+ <div class="g">${B('title','Titel',i.title)}${B('bv','Bauvorhaben (BV)',i.bv)}</div><label>Einleitungstext</label><textarea rows="3" data-b="intro">${e(i.intro)}</textarea></div>
+ <div class="card"><b>Positionen</b>${(i.items||[]).map((x,k)=>`<div class="row"><input class="s" data-b="items.${k}.q" value="${e(x.q)}" placeholder="Me."><input class="s" data-b="items.${k}.u" value="${e(x.u)}" placeholder="Einh."><input data-b="items.${k}.t" value="${e(x.t)}" placeholder="Leistung"><input class="m" ${D} data-b="items.${k}.a" value="${e(x.a)}" placeholder="Betrag"><button class="x" data-a="delItem" data-i="${k}">✕</button></div>`).join('')}<button data-a="addItem">+ Position</button>
+ ${isAZ(i)?`<hr><b>Bisherige Abschlagsrechnungen</b> <button data-a="hist">Aus Historie laden</button><div style="margin-top:8px">${(i.prev||[]).map((v,k)=>`<div class="row"><span class="s">${k+1}. AZ</span><input ${D} data-b="prev.${k}" value="${e(v)}"><button class="x" data-a="delPrev" data-i="${k}">✕</button></div>`).join('')}</div><button data-a="addPrev">+ AZ</button><label>Liefer-/Leistungsstand (leer = automatisch)</label><input ${D} data-b="stand" value="${e(i.stand)}">`:''}
+ <div class="g">${B('vat','USt %',i.vat??S.set.vat,'text',D)}<div><label>Status</label><select data-b="status">${['Entwurf','Versendet','Bezahlt'].map(s=>`<option ${i.status===s?'selected':''}>${s}</option>`).join('')}</select></div></div></div>`}
+function newInv(base={}){const s=S.set;S.cur={type:'AZ',no:s.prefix+s.next,date:today(),cid:'',bv:'',intro:'vielen Dank für Ihren Auftrag und das damit verbundene Vertrauen. Wir stellen Ihnen folgende Positionen in Rechnung:',items:[{q:'1',u:'psch.',t:'',a:''}],prev:[],stand:'',status:'Entwurf',...base};S.cur.title=autoTitle();S.cur.fresh=true;S.view='edit';render()}
+async function saveInv(){const i={...S.cur},t=calc(i);i.net=t.net;i.gross=t.gross;const fresh=i.fresh;delete i.fresh;const id=i.id||('i'+Date.now());delete i.id;await db.collection('invoices').doc(id).set(i);S.cur.id=id;
+ if(fresh&&i.no===S.set.prefix+S.set.next){S.set.next=(+S.set.next||0)+1;await saveSet()}S.cur.fresh=false;toast('Gespeichert')}
+async function pdf(){const fn=(S.cur.no+'_'+(cusOf(S.cur.cid).name||'')).replace(/[^\w\-äöüÄÖÜß]+/g,'_')+'.pdf',cl=$('sheet').cloneNode(true);cl.id='';cl.style.zoom='1';cl.style.colorScheme='light';toast('PDF wird erstellt…');
+ try{const blob=await html2pdf().set({margin:0,image:{type:'jpeg',quality:.95},html2canvas:{scale:2,useCORS:true,windowWidth:794},jsPDF:{unit:'mm',format:'a4'},pagebreak:{mode:['css','legacy'],avoid:['tr','.ft']}}).from(cl).outputPdf('blob');
+  dl(fn,blob)}catch(x){toast('PDF-Fehler: '+(x&&x.message||x))}}
+const saveSet=()=>db.collection('cfg').doc('main').set(S.set);
+async function backup(){const data=JSON.stringify({v:1,set:S.set,cus:S.cus,inv:S.inv},null,1);try{dl('rechnungstool-backup-'+today()+'.json',new Blob([data],{type:'application/json'}))}catch(x){$('bk').value=data;toast('Download nicht möglich – Text unten kopieren')}}
+async function restore(txt){try{const j=JSON.parse(txt);if(j.set){S.set={...S.set,...j.set};await saveSet()}for(const c of j.cus||[]){const{id,...r}=c;await db.collection('customers').doc(id).set(r)}for(const x of j.inv||[]){const{id,...r}=x;await db.collection('invoices').doc(id).set(r)}toast('Import fertig')}catch(x){toast('Import fehlgeschlagen')}}
+function render(){const v=S.view;['list','cus','set'].forEach(k=>$('n-'+k).className=v===k?'on':'');const a=$('app');
+ if(v==='list'){const q=S.q.toLowerCase(),L=S.inv.filter(i=>(i.no+i.bv+cusOf(i.cid).name+i.title).toLowerCase().includes(q)).sort((x,y)=>(y.date+y.no).localeCompare(x.date+x.no));
+  const open=S.inv.filter(i=>i.status==='Versendet'&&i.type!=='AN').reduce((s,i)=>s+(i.gross||0),0);
+  a.innerHTML=`<h2>Rechnungen</h2><div class="card">Offen (versendet): <b>${eur(open)}</b></div><input data-q="1" placeholder="Suchen…" value="${e(S.q)}"><div class="card" style="margin-top:12px">${L.map(i=>`<div class="li"><div data-a="editInv" data-id="${i.id}" style="cursor:pointer;flex:1"><b>${e(i.no)}</b> · ${e(i.title)}<small>${e(cusOf(i.cid).name)} · ${e(i.bv)} · ${dd(i.date)}</small></div><div style="text-align:right"><b>${eur(i.gross)}</b><br><span class="b">${e(i.status)}</span>${i.type==='AZ'?`<br><button style="margin-top:4px;padding:3px 8px;font-size:12px" data-a="folge" data-id="${i.id}">Folge-AZ</button>`:''}</div></div>`).join('')||'<small>Noch keine Rechnungen.</small>'}</div>`}
+ else if(v==='edit'){a.innerHTML=`<div id="form"></div><div class="row noprint"><button class="p" data-a="save">Speichern</button><button data-a="pdf">PDF exportieren</button><button data-a="list">Zurück</button>${S.cur.id?'<button data-a="delInv">Löschen</button>':''}</div><div id="wrap"><div id="sheet" class="sheet"></div></div>`;renderForm();drawSheet()}
+ else if(v==='cus'){const c=S.ce||{};a.innerHTML=`<h2>Kunden</h2><div class="card"><div class="g"><div><label>Name</label><input id="cn" value="${e(c.name)}"></div><div><label>Kundennummer</label><input id="cr" value="${e(c.no)}"></div></div><label>Adresse (mehrzeilig)</label><textarea id="ca" rows="3">${e(c.addr)}</textarea><div class="row" style="margin-top:8px"><button class="p" data-a="saveCus">${c.id?'Aktualisieren':'Kunde anlegen'}</button></div></div><div class="card">${S.cus.map(c=>`<div class="li"><div data-a="editCus" data-id="${c.id}" style="cursor:pointer;flex:1">${e(c.name)}<small>${e(c.no)}</small></div><button data-a="delCus" data-id="${c.id}">✕</button></div>`).join('')}</div>`}
+ else{const s=S.set,F=(k,l)=>`<div><label>${l}</label><input data-s="${k}" value="${e(s[k])}"></div>`;
+  a.innerHTML=`<h2>Einstellungen</h2><div class="card"><b>Logo</b><br>${s.logo?`<img src="${s.logo}" style="max-height:60px;margin:6px 0"><br>`:''}<input type="file" accept="image/*" data-logo="1"></div><div class="card"><div class="g">${F('name','Firma')}${F('addr','Adresse (eine Zeile)')}${F('city','Ort (für Datum)')}${F('tel','Telefon')}${F('mail','E-Mail')}${F('web','Web')}${F('ustid','USt-ID')}${F('stnr','Steuernummer')}${F('owner','Inhaber')}${F('bank','Bank')}${F('iban','IBAN')}${F('bic','BIC')}${F('prefix','Nummern-Präfix')}${F('next','Nächste Nummer')}${F('vat','USt %')}</div><label>Zahlungstext</label><textarea rows="2" data-s="pay">${e(s.pay)}</textarea></div>
+  <div class="card"><b>Datensicherung</b><div class="row" style="margin-top:8px"><button data-a="backup">Backup exportieren</button><button data-a="rtxt">Aus Textfeld importieren</button></div><label>Backup-Datei importieren</label><input type="file" accept=".json,application/json" data-rfile="1"><label>Text (Fallback)</label><textarea id="bk" rows="3"></textarea></div>`}}
+function setp(o,p,v){const a=p.split('.');while(a.length>1)o=o[a.shift()];o[a[0]]=v}
+document.addEventListener('input',ev=>{const t=ev.target,d=t.dataset;if(d.q){S.q=t.value;render();const q=document.querySelector('[data-q]');q.focus();q.setSelectionRange(99,99);return}
+ if(!d.b||!S.cur)return;if(d.b==='cid'&&t.value==='+'){S.view='cus';S.cur=null;render();return}setp(S.cur,d.b,t.value);if(d.b==='type'){S.cur.title=autoTitle();renderForm()}drawSheet()});
+document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset;if(d.s){S.set[d.s]=t.value;saveSet()}
+ if(d.logo&&t.files[0]){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,500/im.width),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.set.logo=c.toDataURL('image/png');saveSet();render()};im.src=r.result};r.readAsDataURL(t.files[0])}
+ if(d.rfile&&t.files[0])t.files[0].text().then(restore)});
+document.addEventListener('click',async ev=>{const t=ev.target.closest('[data-a]');if(!t)return;const a=t.dataset.a,i=+t.dataset.i,id=t.dataset.id,C=S.cur;
+ if(a==='list'){S.view='list';S.cur=null;render()}else if(a==='cus'){S.ce=null;S.view='cus';render()}else if(a==='set'){S.view='set';render()}else if(a==='new')newInv();
+ else if(a==='addItem'){C.items.push({q:'1',u:'psch.',t:'',a:''});renderForm();drawSheet()}else if(a==='delItem'){C.items.splice(i,1);renderForm();drawSheet()}
+ else if(a==='addPrev'){C.prev.push('');renderForm();drawSheet()}else if(a==='delPrev'){C.prev.splice(i,1);renderForm();drawSheet()}else if(a==='hist'){C.prev=histPrev(C);renderForm();drawSheet()}
+ else if(a==='save')saveInv();else if(a==='pdf')pdf();else if(a==='editInv'){S.cur=JSON.parse(JSON.stringify(S.inv.find(x=>x.id===id)));S.view='edit';render()}
+ else if(a==='folge'){const o=S.inv.find(x=>x.id===id);newInv({cid:o.cid,bv:o.bv,prev:histPrev({id:'',cid:o.cid,bv:o.bv})})}
+ else if(a==='delInv'||a==='delCus'){if(!t.dataset.sure){t.dataset.sure=1;t.textContent='Wirklich?';return}if(a==='delInv'){await db.collection('invoices').doc(C.id).delete();S.view='list';S.cur=null;render()}else await db.collection('customers').doc(id).delete()}
+ else if(a==='saveCus'){const c={name:$('cn').value,no:$('cr').value,addr:$('ca').value};if(!c.name)return;await db.collection('customers').doc(S.ce?.id||'c'+Date.now()).set(c);S.ce=null;render()}
+ else if(a==='editCus'){S.ce=S.cus.find(x=>x.id===id);render()}else if(a==='backup')backup();else if(a==='rtxt')restore($('bk').value)});
+addEventListener('resize',fit);
+(async()=>{render();db=mk();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(x){}
+ if(!db){$('app').innerHTML='<div class="card">Bitte anmelden bzw. die Seite in Claude öffnen, damit Daten gespeichert werden können.</div>';return}
+ const again=()=>{if(S.view!=='edit'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))render()};
+ db.doc('cfg/main').onSnapshot(d=>{if(d.exists)S.set={...S.set,...d.data()};again()});
+ db.collection('customers').onSnapshot(q=>{S.cus=q.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));again()});
+ db.collection('invoices').onSnapshot(q=>{S.inv=q.docs.map(d=>({id:d.id,...d.data()}));again()})})();
+</script></body></html>
